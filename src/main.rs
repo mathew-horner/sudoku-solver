@@ -65,6 +65,8 @@ impl Puzzle {
             if found_valid {
                 pointer += 1;
             } else {
+                #[cfg(debug_assertions)]
+                solution.metrics.edit(idx);
                 solution.puzzle.data[idx] = None;
                 decrement(&mut pointer);
             }
