@@ -1,0 +1,9 @@
+name: Test Sudoku Solver
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Unit Tests
+        run: cargo test
