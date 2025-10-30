@@ -22,40 +22,9 @@ struct Puzzle {
 }
 
 impl Puzzle {
-    fn solve(self) -> Solution {
+    fn solve<A: Algorithm>(self) -> Solution {
         let mut solution = Solution::new(self);
-        let mut pointer = 0;
-        let unsolved: Vec<_> =
-            solution.iter_puzzle().filter(|(_, digit)| digit.is_none()).map(|(idx, _)| idx).collect();
-
-        fn decrement(pointer: &mut usize) {
-            if *pointer == 0 {
-                panic!("unsolvable");
-            }
-            *pointer -= 1;
-        }
-
-        while pointer < unsolved.len() {
-            let idx = unsolved[pointer];
-            let base = solution.get(idx).unwrap_or(0);
-            let mut found_valid = false;
-
-            for cand in (base + 1)..=9 {
-                solution.set(idx, Some(cand));
-                if solution.valid_digit(idx) {
-                    found_valid = true;
-                    break;
-                }
-            }
-
-            if found_valid {
-                pointer += 1;
-            } else {
-                solution.set(idx, None);
-                decrement(&mut pointer);
-            }
-        }
-
+        A::solve(&mut solution);
         solution
     }
 
@@ -69,38 +38,6 @@ impl Puzzle {
             s.push(char);
         }
         s
-    }
-}
-
-fn row(idx: usize) -> usize {
-    idx / 9
-}
-
-fn col(idx: usize) -> usize {
-    idx % 9
-}
-
-fn quad_ranges(row: usize, col: usize) -> (Range<usize>, Range<usize>) {
-    match row {
-        0..3 => match col {
-            0..3 => (0..3, 0..3),
-            3..6 => (0..3, 3..6),
-            6..9 => (0..3, 6..9),
-            _ => unreachable!(),
-        },
-        3..6 => match col {
-            0..3 => (3..6, 0..3),
-            3..6 => (3..6, 3..6),
-            6..9 => (3..6, 6..9),
-            _ => unreachable!(),
-        },
-        6..9 => match col {
-            0..3 => (6..9, 0..3),
-            3..6 => (6..9, 3..6),
-            6..9 => (6..9, 6..9),
-            _ => unreachable!(),
-        },
-        _ => unreachable!(),
     }
 }
 
@@ -153,6 +90,48 @@ impl fmt::Display for Puzzle {
         }
         writeln!(f, "{horizontal_bar}")?;
         Ok(())
+    }
+}
+
+trait Algorithm {
+    fn solve(solution: &mut Solution);
+}
+
+struct Backtracking;
+
+impl Algorithm for Backtracking {
+    fn solve(solution: &mut Solution) {
+        let mut pointer = 0;
+        let unsolved: Vec<_> =
+            solution.iter_puzzle().filter(|(_, digit)| digit.is_none()).map(|(idx, _)| idx).collect();
+
+        fn decrement(pointer: &mut usize) {
+            if *pointer == 0 {
+                panic!("unsolvable");
+            }
+            *pointer -= 1;
+        }
+
+        while pointer < unsolved.len() {
+            let idx = unsolved[pointer];
+            let base = solution.get(idx).unwrap_or(0);
+            let mut found_valid = false;
+
+            for cand in (base + 1)..=9 {
+                solution.set(idx, Some(cand));
+                if solution.valid_digit(idx) {
+                    found_valid = true;
+                    break;
+                }
+            }
+
+            if found_valid {
+                pointer += 1;
+            } else {
+                solution.set(idx, None);
+                decrement(&mut pointer);
+            }
+        }
     }
 }
 
@@ -239,6 +218,38 @@ impl Solution {
     }
 }
 
+fn row(idx: usize) -> usize {
+    idx / 9
+}
+
+fn col(idx: usize) -> usize {
+    idx % 9
+}
+
+fn quad_ranges(row: usize, col: usize) -> (Range<usize>, Range<usize>) {
+    match row {
+        0..3 => match col {
+            0..3 => (0..3, 0..3),
+            3..6 => (0..3, 3..6),
+            6..9 => (0..3, 6..9),
+            _ => unreachable!(),
+        },
+        3..6 => match col {
+            0..3 => (3..6, 0..3),
+            3..6 => (3..6, 3..6),
+            6..9 => (3..6, 6..9),
+            _ => unreachable!(),
+        },
+        6..9 => match col {
+            0..3 => (6..9, 0..3),
+            3..6 => (6..9, 3..6),
+            6..9 => (6..9, 6..9),
+            _ => unreachable!(),
+        },
+        _ => unreachable!(),
+    }
+}
+
 #[derive(Parser)]
 struct Cli {
     /// 81-digit string representing the puzzle, with unsolved squares as 0s
@@ -253,7 +264,7 @@ fn main() {
     env_logger::init();
     let cli = Cli::parse();
     let puzzle = Puzzle::from_str(&cli.puzzle).unwrap();
-    let solution = puzzle.solve();
+    let solution = puzzle.solve::<Backtracking>();
     if cli.pretty_print {
         print!("{}", solution.puzzle);
     } else {
@@ -273,7 +284,7 @@ mod test {
         let puzzle =
             Puzzle::from_str("050703060007000800000816000000030000005000100730040086906000204840572093000409000")
                 .unwrap();
-        let solution = puzzle.solve();
+        let solution = puzzle.solve::<Backtracking>();
 
         let expected =
             Puzzle::from_str("158723469367954821294816375619238547485697132732145986976381254841572693523469718")
