@@ -1,5 +1,6 @@
 use crate::PUZZLE_DIGITS;
 
+// TODO: track "cycles" (pointer moves)
 pub struct Metrics {
     square_edits: [u64; PUZZLE_DIGITS],
     square_views: [u64; PUZZLE_DIGITS],
