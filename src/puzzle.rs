@@ -49,11 +49,13 @@ impl FromStr for Puzzle {
         let mut puzzle = Puzzle::default();
 
         for (idx, char) in s.chars().enumerate() {
-            match char.to_digit(10).ok_or_else(|| anyhow!("character {char} at index {idx} is not a digit"))? {
-                0 => {}
-                digit => {
+            match char.to_digit(10) {
+                Some(0) => {}
+                None if char == '.' => {}
+                Some(digit) => {
                     puzzle.data[idx] = Some(digit as u8);
                 }
+                None => return Err(anyhow!("character {char} at index {idx} is not a digit or period")),
             }
         }
 
