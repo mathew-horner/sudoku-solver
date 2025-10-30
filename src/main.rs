@@ -96,39 +96,24 @@ fn col(idx: usize) -> usize {
     idx % 9
 }
 
-fn quad_ranges(quad: usize) -> (Range<usize>, Range<usize>) {
-    match quad {
-        0 => (0..3, 0..3),
-        1 => (0..3, 3..6),
-        2 => (0..3, 6..9),
-        3 => (3..6, 0..3),
-        4 => (3..6, 3..6),
-        5 => (3..6, 6..9),
-        6 => (6..9, 0..3),
-        7 => (6..9, 3..6),
-        8 => (6..9, 6..9),
-        _ => unreachable!(),
-    }
-}
-
-fn quad(row: usize, col: usize) -> usize {
+fn quad_ranges(row: usize, col: usize) -> (Range<usize>, Range<usize>) {
     match row {
         0..3 => match col {
-            0..3 => 0,
-            3..6 => 1,
-            6..9 => 2,
+            0..3 => (0..3, 0..3),
+            3..6 => (0..3, 3..6),
+            6..9 => (0..3, 6..9),
             _ => unreachable!(),
         },
         3..6 => match col {
-            0..3 => 3,
-            3..6 => 4,
-            6..9 => 5,
+            0..3 => (3..6, 0..3),
+            3..6 => (3..6, 3..6),
+            6..9 => (3..6, 6..9),
             _ => unreachable!(),
         },
         6..9 => match col {
-            0..3 => 6,
-            3..6 => 7,
-            6..9 => 8,
+            0..3 => (6..9, 0..3),
+            3..6 => (6..9, 3..6),
+            6..9 => (6..9, 6..9),
             _ => unreachable!(),
         },
         _ => unreachable!(),
@@ -205,8 +190,8 @@ impl Solution {
         }
         let row = row(idx);
         let col = col(idx);
-        let quad = quad(row, col);
-        self.valid_row(row) && self.valid_col(col) && self.valid_quad(quad)
+        let (rowr, colr) = quad_ranges(row, col);
+        self.valid_row(row) && self.valid_col(col) && self.valid_quad(rowr, colr)
     }
 
     fn valid_row(&mut self, row: usize) -> bool {
@@ -239,8 +224,7 @@ impl Solution {
         true
     }
 
-    fn valid_quad(&mut self, quad: usize) -> bool {
-        let (rowr, colr) = quad_ranges(quad);
+    fn valid_quad(&mut self, rowr: Range<usize>, colr: Range<usize>) -> bool {
         let mut seen = HashSet::new();
         for row in rowr {
             for col in colr.clone() {
