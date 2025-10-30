@@ -6,6 +6,12 @@ use std::str::FromStr;
 use anyhow::{Error, Result, anyhow};
 use clap::Parser;
 
+#[cfg(debug_assertions)]
+mod metrics;
+
+#[cfg(debug_assertions)]
+use metrics::Metrics;
+
 /// Since a Sudoku puzzle is represented by a 9x9 grid, there are 9^2 digits
 /// in a puzzle.
 const PUZZLE_DIGITS: usize = 9_usize.pow(2);
@@ -16,10 +22,21 @@ struct Puzzle {
 }
 
 impl Puzzle {
-    fn solve(&mut self) {
+    fn solve(self) -> Solution {
+        let mut solution = Solution::new(self);
         let mut pointer = 0;
-        let unsolved: Vec<_> =
-            self.data.iter().enumerate().filter(|(_, digit)| digit.is_none()).map(|(idx, _)| idx).collect();
+        let unsolved: Vec<_> = solution
+            .puzzle
+            .data
+            .iter()
+            .enumerate()
+            .filter(|(idx, digit)| {
+                #[cfg(debug_assertions)]
+                solution.metrics.view(*idx);
+                digit.is_none()
+            })
+            .map(|(idx, _)| idx)
+            .collect();
 
         fn decrement(pointer: &mut usize) {
             if *pointer == 0 {
@@ -30,12 +47,16 @@ impl Puzzle {
 
         while pointer < unsolved.len() {
             let idx = unsolved[pointer];
-            let base = self.data[idx].unwrap_or(0);
+            let base = solution.puzzle.data[idx].unwrap_or(0);
+            #[cfg(debug_assertions)]
+            solution.metrics.view(idx);
             let mut found_valid = false;
 
             for cand in (base + 1)..=9 {
-                self.data[idx] = Some(cand);
-                if self.valid_digit(idx) {
+                solution.puzzle.data[idx] = Some(cand);
+                #[cfg(debug_assertions)]
+                solution.metrics.edit(idx);
+                if solution.valid_digit(idx) {
                     found_valid = true;
                     break;
                 }
@@ -44,62 +65,12 @@ impl Puzzle {
             if found_valid {
                 pointer += 1;
             } else {
-                self.data[idx] = None;
+                solution.puzzle.data[idx] = None;
                 decrement(&mut pointer);
             }
         }
-    }
 
-    fn valid_digit(&self, idx: usize) -> bool {
-        if idx >= PUZZLE_DIGITS {
-            return false;
-        }
-        let row = row(idx);
-        let col = col(idx);
-        let quad = quad(row, col);
-        self.valid_row(row) && self.valid_col(col) && self.valid_quad(quad)
-    }
-
-    fn valid_row(&self, row: usize) -> bool {
-        let mut seen = HashSet::new();
-        for col in 0..9 {
-            let idx = row * 9 + col;
-            if let Some(digit) = &self.data[idx] {
-                if !seen.insert(digit) {
-                    return false;
-                }
-            }
-        }
-        true
-    }
-
-    fn valid_col(&self, col: usize) -> bool {
-        let mut seen = HashSet::new();
-        for row in 0..9 {
-            let idx = row * 9 + col;
-            if let Some(digit) = &self.data[idx] {
-                if !seen.insert(digit) {
-                    return false;
-                }
-            }
-        }
-        true
-    }
-
-    fn valid_quad(&self, quad: usize) -> bool {
-        let (rowr, colr) = quad_ranges(quad);
-        let mut seen = HashSet::new();
-        for row in rowr {
-            for col in colr.clone() {
-                let idx = row * 9 + col;
-                if let Some(digit) = &self.data[idx] {
-                    if !seen.insert(digit) {
-                        return false;
-                    }
-                }
-            }
-        }
-        true
+        solution
     }
 
     fn serialize(&self) -> String {
@@ -214,6 +185,77 @@ impl fmt::Display for Puzzle {
     }
 }
 
+struct Solution {
+    puzzle: Puzzle,
+
+    #[cfg(debug_assertions)]
+    metrics: Metrics,
+}
+
+impl Solution {
+    fn new(puzzle: Puzzle) -> Self {
+        Self { puzzle, metrics: Metrics::default() }
+    }
+
+    fn valid_digit(&mut self, idx: usize) -> bool {
+        if idx >= PUZZLE_DIGITS {
+            return false;
+        }
+        let row = row(idx);
+        let col = col(idx);
+        let quad = quad(row, col);
+        self.valid_row(row) && self.valid_col(col) && self.valid_quad(quad)
+    }
+
+    fn valid_row(&mut self, row: usize) -> bool {
+        let mut seen = HashSet::new();
+        for col in 0..9 {
+            let idx = row * 9 + col;
+            #[cfg(debug_assertions)]
+            self.metrics.view(idx);
+            if let Some(digit) = &self.puzzle.data[idx] {
+                if !seen.insert(digit) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    fn valid_col(&mut self, col: usize) -> bool {
+        let mut seen = HashSet::new();
+        for row in 0..9 {
+            let idx = row * 9 + col;
+            #[cfg(debug_assertions)]
+            self.metrics.view(idx);
+            if let Some(digit) = &self.puzzle.data[idx] {
+                if !seen.insert(digit) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    fn valid_quad(&mut self, quad: usize) -> bool {
+        let (rowr, colr) = quad_ranges(quad);
+        let mut seen = HashSet::new();
+        for row in rowr {
+            for col in colr.clone() {
+                let idx = row * 9 + col;
+                #[cfg(debug_assertions)]
+                self.metrics.view(idx);
+                if let Some(digit) = &self.puzzle.data[idx] {
+                    if !seen.insert(digit) {
+                        return false;
+                    }
+                }
+            }
+        }
+        true
+    }
+}
+
 #[derive(Parser)]
 struct Cli {
     /// 81-digit string representing the puzzle, with unsolved squares as 0s
@@ -225,14 +267,18 @@ struct Cli {
 }
 
 fn main() {
+    env_logger::init();
     let cli = Cli::parse();
-    let mut puzzle = Puzzle::from_str(&cli.puzzle).unwrap();
-    puzzle.solve();
+    let puzzle = Puzzle::from_str(&cli.puzzle).unwrap();
+    let solution = puzzle.solve();
     if cli.pretty_print {
-        println!("{puzzle}");
+        print!("{}", solution.puzzle);
     } else {
-        println!("{}", puzzle.serialize());
+        println!("{}", solution.puzzle.serialize());
     }
+
+    #[cfg(debug_assertions)]
+    solution.metrics.log();
 }
 
 #[cfg(test)]
@@ -241,15 +287,15 @@ mod test {
 
     #[test]
     fn test_solve() {
-        let mut puzzle =
+        let puzzle =
             Puzzle::from_str("050703060007000800000816000000030000005000100730040086906000204840572093000409000")
                 .unwrap();
-        puzzle.solve();
+        let solution = puzzle.solve();
 
         let expected =
             Puzzle::from_str("158723469367954821294816375619238547485697132732145986976381254841572693523469718")
                 .unwrap();
 
-        assert_eq!(puzzle, expected);
+        assert_eq!(solution.puzzle, expected);
     }
 }
