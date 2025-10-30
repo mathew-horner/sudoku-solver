@@ -25,18 +25,8 @@ impl Puzzle {
     fn solve(self) -> Solution {
         let mut solution = Solution::new(self);
         let mut pointer = 0;
-        let unsolved: Vec<_> = solution
-            .puzzle
-            .data
-            .iter()
-            .enumerate()
-            .filter(|(idx, digit)| {
-                #[cfg(debug_assertions)]
-                solution.metrics.view(*idx);
-                digit.is_none()
-            })
-            .map(|(idx, _)| idx)
-            .collect();
+        let unsolved: Vec<_> =
+            solution.iter_puzzle().filter(|(_, digit)| digit.is_none()).map(|(idx, _)| idx).collect();
 
         fn decrement(pointer: &mut usize) {
             if *pointer == 0 {
@@ -47,15 +37,11 @@ impl Puzzle {
 
         while pointer < unsolved.len() {
             let idx = unsolved[pointer];
-            let base = solution.puzzle.data[idx].unwrap_or(0);
-            #[cfg(debug_assertions)]
-            solution.metrics.view(idx);
+            let base = solution.get(idx).unwrap_or(0);
             let mut found_valid = false;
 
             for cand in (base + 1)..=9 {
-                solution.puzzle.data[idx] = Some(cand);
-                #[cfg(debug_assertions)]
-                solution.metrics.edit(idx);
+                solution.set(idx, Some(cand));
                 if solution.valid_digit(idx) {
                     found_valid = true;
                     break;
@@ -65,9 +51,7 @@ impl Puzzle {
             if found_valid {
                 pointer += 1;
             } else {
-                #[cfg(debug_assertions)]
-                solution.metrics.edit(idx);
-                solution.puzzle.data[idx] = None;
+                solution.set(idx, None);
                 decrement(&mut pointer);
             }
         }
@@ -184,6 +168,25 @@ impl Solution {
         Self { puzzle, metrics: Metrics::default() }
     }
 
+    fn get(&mut self, idx: usize) -> Option<u8> {
+        #[cfg(debug_assertions)]
+        self.metrics.view(idx);
+        self.puzzle.data[idx]
+    }
+
+    fn set(&mut self, idx: usize, value: Option<u8>) {
+        #[cfg(debug_assertions)]
+        self.metrics.edit(idx);
+        self.puzzle.data[idx] = value;
+    }
+
+    fn iter_puzzle(&mut self) -> impl Iterator<Item = (usize, &Option<u8>)> {
+        self.puzzle.data.iter().enumerate().inspect(|(idx, _)| {
+            #[cfg(debug_assertions)]
+            self.metrics.view(*idx);
+        })
+    }
+
     fn valid_digit(&mut self, idx: usize) -> bool {
         if idx >= PUZZLE_DIGITS {
             return false;
@@ -198,9 +201,7 @@ impl Solution {
         let mut seen = HashSet::new();
         for col in 0..9 {
             let idx = row * 9 + col;
-            #[cfg(debug_assertions)]
-            self.metrics.view(idx);
-            if let Some(digit) = &self.puzzle.data[idx] {
+            if let Some(digit) = self.get(idx) {
                 if !seen.insert(digit) {
                     return false;
                 }
@@ -213,9 +214,7 @@ impl Solution {
         let mut seen = HashSet::new();
         for row in 0..9 {
             let idx = row * 9 + col;
-            #[cfg(debug_assertions)]
-            self.metrics.view(idx);
-            if let Some(digit) = &self.puzzle.data[idx] {
+            if let Some(digit) = self.get(idx) {
                 if !seen.insert(digit) {
                     return false;
                 }
@@ -229,9 +228,7 @@ impl Solution {
         for row in rowr {
             for col in colr.clone() {
                 let idx = row * 9 + col;
-                #[cfg(debug_assertions)]
-                self.metrics.view(idx);
-                if let Some(digit) = &self.puzzle.data[idx] {
+                if let Some(digit) = self.get(idx) {
                     if !seen.insert(digit) {
                         return false;
                     }
