@@ -26,13 +26,13 @@ impl BaseSolution {
     pub fn get(&mut self, idx: usize) -> Option<u8> {
         #[cfg(debug_assertions)]
         self.metrics.record_view(idx);
-        self.puzzle.data[idx]
+        self.puzzle.get(idx)
     }
 
     pub fn set(&mut self, idx: usize, value: Option<u8>) {
         #[cfg(debug_assertions)]
         self.metrics.record_edit(idx);
-        self.puzzle.data[idx] = value;
+        self.puzzle.set(idx, value);
     }
 
     pub fn iter_puzzle(&mut self) -> impl Iterator<Item = (usize, &Option<u8>)> {

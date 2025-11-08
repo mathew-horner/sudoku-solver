@@ -11,6 +11,14 @@ pub struct Puzzle {
 }
 
 impl Puzzle {
+    pub fn get(&self, idx: usize) -> Option<u8> {
+        self.data[idx]
+    }
+
+    pub fn set(&mut self, idx: usize, value: Option<u8>) {
+        self.data[idx] = value;
+    }
+
     /// Render the puzzle to a single line of 81 digits.
     pub fn serialize(&self) -> String {
         let mut buffer = String::with_capacity(PUZZLE_DIGITS);

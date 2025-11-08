@@ -12,6 +12,7 @@ mod algorithms;
 mod metrics;
 mod puzzle;
 mod solution;
+mod tui;
 
 const PUZZLE_DIGITS: usize = 9_usize.pow(2);
 
