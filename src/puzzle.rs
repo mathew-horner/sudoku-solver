@@ -11,16 +11,17 @@ pub struct Puzzle {
 }
 
 impl Puzzle {
+    /// Render the puzzle to a single line of 81 digits.
     pub fn serialize(&self) -> String {
-        let mut s = String::with_capacity(PUZZLE_DIGITS);
+        let mut buffer = String::with_capacity(PUZZLE_DIGITS);
         for idx in 0..PUZZLE_DIGITS {
             let char = match self.data[idx] {
                 Some(digit) => char::from_digit(digit as u32, 10).unwrap(),
                 None => '0',
             };
-            s.push(char);
+            buffer.push(char);
         }
-        s
+        buffer
     }
 }
 
@@ -33,15 +34,16 @@ impl Default for Puzzle {
 impl FromStr for Puzzle {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self> {
-        if s.len() != PUZZLE_DIGITS {
+    fn from_str(input: &str) -> Result<Self> {
+        if input.len() != PUZZLE_DIGITS {
             return Err(anyhow!("puzzle must have {PUZZLE_DIGITS} digits"));
         }
 
         let mut puzzle = Puzzle::default();
 
-        for (idx, char) in s.chars().enumerate() {
+        for (idx, char) in input.chars().enumerate() {
             match char.to_digit(10) {
+                // We accept both '0' and '.' to mean "empty square"
                 Some(0) => {}
                 None if char == '.' => {}
                 Some(digit) => {
@@ -57,6 +59,7 @@ impl FromStr for Puzzle {
 
 impl fmt::Display for Puzzle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // TODO: Clean this code up.
         let horizontal_bar = str::repeat("-", 13);
         for (idx, digit) in self.data.iter().enumerate() {
             if idx % (9 * 3) == 0 {

@@ -13,8 +13,6 @@ mod metrics;
 mod puzzle;
 mod solution;
 
-/// Since a Sudoku puzzle is represented by a 9x9 grid, there are 9^2 digits
-/// in a puzzle.
 const PUZZLE_DIGITS: usize = 9_usize.pow(2);
 
 #[derive(Parser)]
@@ -64,5 +62,5 @@ fn main() {
     };
 
     #[cfg(debug_assertions)]
-    solution.metrics.log();
+    solution.metrics.write_logs();
 }

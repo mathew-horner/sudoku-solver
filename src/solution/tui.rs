@@ -7,8 +7,12 @@ use crate::puzzle::Puzzle;
 use crate::solution::Solution;
 use crate::solution::base::BaseSolution;
 
-// TODO: This should be able to be SIGINT'd
+/// Renders the solution to a TUI as it is being found.
+///
+/// This is great for visualizing how an [`Algorithm`] works, and how different
+/// ones compare to each other.
 pub struct TuiSolution {
+    // TODO: This should be able to be SIGINT'd
     terminal: DefaultTerminal,
     base: BaseSolution,
 }

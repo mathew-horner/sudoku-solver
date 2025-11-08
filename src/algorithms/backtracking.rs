@@ -6,17 +6,23 @@ pub struct Backtracking;
 impl Algorithm for Backtracking {
     fn solve<T: Solution>(&self, solution: &mut T) {
         let mut pointer = 0;
-        let unsolved: Vec<_> =
+
+        // We only need to iterate over the initially empty squares to find a solution.
+        let initially_empty: Vec<_> =
             solution.base().iter_puzzle().filter(|(_, digit)| digit.is_none()).map(|(idx, _)| idx).collect();
 
-        while pointer < unsolved.len() {
-            let idx = unsolved[pointer];
+        while pointer < initially_empty.len() {
+            let idx = initially_empty[pointer];
             let base = solution.base().get(idx).unwrap_or(0);
             let mut found_valid = false;
 
+            // The lower bound of this for loop range is crucial. If the square was empty,
+            // base will be 0 here and thus we will start at 1. If the square had a value,
+            // we will only consider values higher than it since we've already tried the
+            // lower values.
             for cand in (base + 1)..=9 {
                 solution.set(idx, Some(cand));
-                if solution.base().valid_digit(idx) {
+                if solution.base().is_valid_digit(idx) {
                     found_valid = true;
                     break;
                 }
@@ -27,6 +33,8 @@ impl Algorithm for Backtracking {
             } else {
                 solution.set(idx, None);
                 if pointer == 0 {
+                    // If we ever get here, that means we've exhausted all the candidates in the
+                    // first cell, and thus we cannot find a solution.
                     panic!("unsolvable");
                 }
                 pointer -= 1;

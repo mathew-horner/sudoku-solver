@@ -1,21 +1,21 @@
 use crate::PUZZLE_DIGITS;
 
-// TODO: track "cycles" (pointer moves)
 pub struct Metrics {
+    // TODO: track "cycles" (pointer moves)
     square_edits: [u64; PUZZLE_DIGITS],
     square_views: [u64; PUZZLE_DIGITS],
 }
 
 impl Metrics {
-    pub fn edit(&mut self, idx: usize) {
+    pub fn record_edit(&mut self, idx: usize) {
         self.square_edits[idx] += 1;
     }
 
-    pub fn view(&mut self, idx: usize) {
+    pub fn record_view(&mut self, idx: usize) {
         self.square_views[idx] += 1;
     }
 
-    pub fn log(&self) {
+    pub fn write_logs(&self) {
         log::info!("Total Square Edits: {}", self.square_edits.into_iter().sum::<u64>());
         log::info!("Total Square Views: {}", self.square_views.into_iter().sum::<u64>());
     }
