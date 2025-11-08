@@ -4,5 +4,5 @@ pub mod backtracking;
 pub use backtracking::Backtracking;
 
 pub trait Algorithm {
-    fn solve(solution: &mut Solution);
+    fn solve<T: Solution>(&self, solution: &mut T);
 }

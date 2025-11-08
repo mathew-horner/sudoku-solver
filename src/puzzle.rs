@@ -4,8 +4,6 @@ use std::str::FromStr;
 use anyhow::{Error, Result, anyhow};
 
 use crate::PUZZLE_DIGITS;
-use crate::algorithms::Algorithm;
-use crate::solution::Solution;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Puzzle {
@@ -13,12 +11,6 @@ pub struct Puzzle {
 }
 
 impl Puzzle {
-    pub fn solve<A: Algorithm>(self) -> Solution {
-        let mut solution = Solution::new(self);
-        A::solve(&mut solution);
-        solution
-    }
-
     pub fn serialize(&self) -> String {
         let mut s = String::with_capacity(PUZZLE_DIGITS);
         for idx in 0..PUZZLE_DIGITS {
