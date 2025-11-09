@@ -3,7 +3,7 @@ use std::sync::mpsc::SyncSender;
 use std::time::Duration;
 
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
-use ratatui::{CompletedFrame, DefaultTerminal};
+use ratatui::DefaultTerminal;
 
 use crate::puzzle::Puzzle;
 use crate::tui::layout::{Cell, LAYOUT, X_CELL_COUNT, Y_CELL_COUNT};
@@ -20,7 +20,7 @@ impl Tui {
         Self { terminal: ratatui::init(), kill_channel }
     }
 
-    pub fn render(&mut self, puzzle: &Puzzle) -> io::Result<CompletedFrame<'_>> {
+    pub fn render(&mut self, puzzle: &Puzzle) -> io::Result<()> {
         const IMMEDIATE: Duration = Duration::from_secs(0);
 
         while let Ok(true) = event::poll(IMMEDIATE) {
@@ -28,6 +28,7 @@ impl Tui {
                 Event::Key(event) => {
                     if event.modifiers.contains(KeyModifiers::CONTROL) && event.code == KeyCode::Char('c') {
                         self.kill_channel.send(()).unwrap();
+                        return Ok(());
                     }
                 }
                 _ => {}
@@ -50,7 +51,8 @@ impl Tui {
                     cell.set_char(chr);
                 }
             }
-        })
+        })?;
+        Ok(())
     }
 }
 
