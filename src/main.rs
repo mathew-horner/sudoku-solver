@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use std::sync::mpsc;
 
 use clap::{Parser, ValueEnum};
 
@@ -42,22 +43,24 @@ fn main() {
     env_logger::init();
     let cli = Cli::parse();
     let puzzle = Puzzle::from_str(&cli.puzzle).unwrap();
+
     let solution = match cli.output {
         Output::Standard => {
             let mut solution = BaseSolution::new(puzzle);
-            ALGORITHM.solve(&mut solution);
+            ALGORITHM.solve(&mut solution, None);
             print!("{}", solution.puzzle.serialize());
             solution
         }
         Output::Pretty => {
             let mut solution = BaseSolution::new(puzzle);
-            ALGORITHM.solve(&mut solution);
+            ALGORITHM.solve(&mut solution, None);
             print!("{}", solution.puzzle);
             solution
         }
         Output::Animation => {
-            let mut tui = TuiSolution::init(puzzle);
-            ALGORITHM.solve(&mut tui);
+            let (tx, rx) = mpsc::sync_channel(1);
+            let mut tui = TuiSolution::init(puzzle, tx);
+            ALGORITHM.solve(&mut tui, Some(rx));
             tui.into_base()
         }
     };

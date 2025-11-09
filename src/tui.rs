@@ -1,5 +1,8 @@
 use std::io;
+use std::sync::mpsc::SyncSender;
+use std::time::Duration;
 
+use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use ratatui::{CompletedFrame, DefaultTerminal};
 
 use crate::puzzle::Puzzle;
@@ -8,16 +11,29 @@ use crate::tui::layout::{Cell, LAYOUT, X_CELL_COUNT, Y_CELL_COUNT};
 mod layout;
 
 pub struct Tui {
-    // TODO: This should be able to be SIGINT'd
     terminal: DefaultTerminal,
+    kill_channel: SyncSender<()>,
 }
 
 impl Tui {
-    pub fn init() -> Self {
-        Self { terminal: ratatui::init() }
+    pub fn init(kill_channel: SyncSender<()>) -> Self {
+        Self { terminal: ratatui::init(), kill_channel }
     }
 
-    pub fn draw(&mut self, puzzle: &Puzzle) -> io::Result<CompletedFrame<'_>> {
+    pub fn render(&mut self, puzzle: &Puzzle) -> io::Result<CompletedFrame<'_>> {
+        const IMMEDIATE: Duration = Duration::from_secs(0);
+
+        while let Ok(true) = event::poll(IMMEDIATE) {
+            match event::read().unwrap() {
+                Event::Key(event) => {
+                    if event.modifiers.contains(KeyModifiers::CONTROL) && event.code == KeyCode::Char('c') {
+                        self.kill_channel.send(()).unwrap();
+                    }
+                }
+                _ => {}
+            }
+        }
+
         self.terminal.draw(|frame| {
             for y in 0..Y_CELL_COUNT {
                 for x in 0..X_CELL_COUNT {
@@ -35,5 +51,11 @@ impl Tui {
                 }
             }
         })
+    }
+}
+
+impl Drop for Tui {
+    fn drop(&mut self) {
+        ratatui::restore();
     }
 }

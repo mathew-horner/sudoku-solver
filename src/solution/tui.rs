@@ -1,3 +1,4 @@
+use std::sync::mpsc::SyncSender;
 use std::thread;
 use std::time::Duration;
 
@@ -16,8 +17,8 @@ pub struct TuiSolution {
 }
 
 impl TuiSolution {
-    pub fn init(puzzle: Puzzle) -> Self {
-        Self { tui: Tui::init(), base: BaseSolution::new(puzzle) }
+    pub fn init(puzzle: Puzzle, kill_channel: SyncSender<()>) -> Self {
+        Self { tui: Tui::init(kill_channel), base: BaseSolution::new(puzzle) }
     }
 
     pub fn into_base(self) -> BaseSolution {
@@ -29,7 +30,7 @@ impl Solution for TuiSolution {
     fn set(&mut self, index: usize, value: Option<u8>) {
         self.base.set(index, value);
         // TODO: Don't unwrap here.
-        self.tui.draw(&self.base.puzzle).unwrap();
+        self.tui.render(&self.base.puzzle).unwrap();
         // TODO: Make this configurable.
         thread::sleep(Duration::from_millis(50));
     }

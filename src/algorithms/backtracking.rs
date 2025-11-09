@@ -1,10 +1,12 @@
+use std::sync::mpsc::Receiver;
+
 use crate::algorithms::Algorithm;
 use crate::solution::Solution;
 
 pub struct Backtracking;
 
 impl Algorithm for Backtracking {
-    fn solve<T: Solution>(&self, solution: &mut T) {
+    fn solve<T: Solution>(&self, solution: &mut T, kill_channel: Option<Receiver<()>>) {
         let mut pointer = 0;
 
         // We only need to iterate over the initially empty squares to find a solution.
@@ -12,6 +14,12 @@ impl Algorithm for Backtracking {
             solution.base().iter_puzzle().filter(|(_, digit)| digit.is_none()).map(|(idx, _)| idx).collect();
 
         while pointer < initially_empty.len() {
+            if let Some(channel) = kill_channel.as_ref()
+                && let Ok(()) = channel.try_recv()
+            {
+                return;
+            }
+
             let idx = initially_empty[pointer];
             let base = solution.base().get(idx).unwrap_or(0);
             let mut found_valid = false;
@@ -57,7 +65,7 @@ mod test {
             Puzzle::from_str("050703060007000800000816000000030000005000100730040086906000204840572093000409000")
                 .unwrap();
         let mut solution = BaseSolution::new(puzzle);
-        Backtracking.solve(&mut solution);
+        Backtracking.solve(&mut solution, None);
 
         let expected =
             Puzzle::from_str("158723469367954821294816375619238547485697132732145986976381254841572693523469718")
