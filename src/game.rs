@@ -38,6 +38,7 @@ impl KeyHandler for GameKeys {
 }
 
 pub fn play(mut puzzle: Puzzle) {
+    puzzle.track_initial();
     let (tx, rx) = mpsc::sync_channel(1);
     let mut tui = Tui::<GameKeys>::init(tx).with_cursor();
     while let Err(TryRecvError::Empty) = rx.try_recv() {

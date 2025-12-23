@@ -8,6 +8,9 @@ use crate::PUZZLE_DIGITS;
 #[derive(Debug, Eq, PartialEq)]
 pub struct Puzzle {
     pub data: [Option<u8>; PUZZLE_DIGITS],
+    /// Optional tracking of the cells which were initially filled, restricting
+    /// edits to them.
+    initially_filled: Option<[bool; PUZZLE_DIGITS]>,
 }
 
 impl Puzzle {
@@ -16,7 +19,13 @@ impl Puzzle {
     }
 
     pub fn set(&mut self, idx: usize, value: Option<u8>) {
-        self.data[idx] = value;
+        if !self.initially_filled.map(|filled| filled[idx]).unwrap_or_default() {
+            self.data[idx] = value;
+        }
+    }
+
+    pub fn track_initial(&mut self) {
+        self.initially_filled = Some(std::array::from_fn(|idx| self.data[idx].is_some()));
     }
 
     /// Render the puzzle to a single line of 81 digits.
@@ -35,7 +44,7 @@ impl Puzzle {
 
 impl Default for Puzzle {
     fn default() -> Self {
-        Self { data: std::array::from_fn(|_| None) }
+        Self { data: std::array::from_fn(|_| None), initially_filled: None }
     }
 }
 
