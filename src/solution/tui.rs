@@ -30,7 +30,7 @@ impl Solution for TuiSolution {
     fn set(&mut self, index: usize, value: Option<u8>) {
         self.base.set(index, value);
         // TODO: Don't unwrap here.
-        self.tui.render(&self.base.puzzle).unwrap();
+        self.tui.render(&mut self.base.puzzle).unwrap();
         // TODO: Make this configurable.
         thread::sleep(Duration::from_millis(50));
     }

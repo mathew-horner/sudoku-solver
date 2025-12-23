@@ -9,6 +9,7 @@ use crate::solution::base::BaseSolution;
 use crate::solution::tui::TuiSolution;
 
 mod algorithms;
+mod game;
 #[cfg(debug_assertions)]
 mod metrics;
 mod puzzle;
@@ -81,6 +82,8 @@ fn main() {
             #[cfg(debug_assertions)]
             solution.metrics.write_logs();
         }
-        Subcommand::Play => todo!(),
+        Subcommand::Play => {
+            game::play(puzzle);
+        }
     }
 }
