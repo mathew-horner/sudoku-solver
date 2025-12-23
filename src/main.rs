@@ -1,5 +1,7 @@
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::mpsc;
+use std::{fs, process};
 
 use clap::{Parser, ValueEnum};
 
@@ -24,6 +26,9 @@ struct Cli {
     subcommand: Subcommand,
     /// 81-digit string representing the puzzle, with unsolved squares as 0s
     puzzle: Option<String>,
+    /// File containing puzzle data.
+    #[arg(short, long)]
+    file: Option<PathBuf>,
 }
 
 #[derive(clap::Subcommand)]
@@ -54,8 +59,18 @@ fn main() {
 
     env_logger::init();
     let cli = Cli::parse();
-    let puzzle = match cli.puzzle {
-        Some(puzzle) => Puzzle::from_str(&puzzle).unwrap(),
+    let puzzle_text = match (cli.puzzle, cli.file) {
+        (Some(puzzle), None) => Some(puzzle),
+        (None, Some(file)) => Some(fs::read_to_string(file).unwrap()),
+        (None, None) => None,
+        _ => {
+            eprintln!("only one of [PUZZLE] and -f <FILE> may be provided");
+            process::exit(1);
+        }
+    };
+
+    let puzzle = match puzzle_text {
+        Some(text) => Puzzle::from_str(text.trim()).unwrap(),
         None => Puzzle::default(),
     };
 
