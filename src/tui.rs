@@ -1,4 +1,5 @@
 use std::io;
+use std::marker::PhantomData;
 use std::sync::mpsc::SyncSender;
 use std::time::Duration;
 
@@ -11,25 +12,22 @@ use crate::tui::layout::{Cell, LAYOUT, X_CELL_COUNT, Y_CELL_COUNT};
 
 mod layout;
 
-/// Function that owners of [`Tui`] can pass to [`Tui::with_key_handler`] to
-/// provide key handling for their use case.
-type KeyHandler = Box<dyn Fn(KeyEvent) -> Option<Action>>;
-
-pub struct Tui {
-    terminal: DefaultTerminal,
-    kill_channel: SyncSender<()>,
-    key_handler: KeyHandler,
-    cursor_square_index: Option<usize>,
+pub trait KeyHandler: Sized {
+    fn handle_key(_tui: &mut Tui<Self>, _puzzle: &mut Puzzle, _key: KeyEvent) {}
 }
 
-impl Tui {
-    pub fn init(kill_channel: SyncSender<()>) -> Self {
-        Self { terminal: ratatui::init(), kill_channel, key_handler: Box::new(|_| None), cursor_square_index: None }
-    }
+impl KeyHandler for () {}
 
-    pub fn with_key_handler(mut self, key_handler: KeyHandler) -> Self {
-        self.key_handler = Box::new(key_handler);
-        self
+pub struct Tui<K: KeyHandler = ()> {
+    pub cursor_square_index: Option<usize>,
+    terminal: DefaultTerminal,
+    kill_channel: SyncSender<()>,
+    _phantom: PhantomData<K>,
+}
+
+impl<K: KeyHandler> Tui<K> {
+    pub fn init(kill_channel: SyncSender<()>) -> Self {
+        Self { terminal: ratatui::init(), kill_channel, cursor_square_index: None, _phantom: PhantomData }
     }
 
     pub fn with_cursor(mut self) -> Self {
@@ -50,25 +48,7 @@ impl Tui {
                         return Ok(());
                     }
 
-                    if let Some(action) = (self.key_handler)(event) {
-                        match action {
-                            Action::MoveCursor(direction) => {
-                                self.move_cursor(direction);
-                            }
-                            Action::Set(digit) => {
-                                // TODO: Should not be able to set initially set squares.
-                                if let Some(index) = self.cursor_square_index {
-                                    puzzle.set(index, Some(digit));
-                                }
-                            }
-                            Action::Clear => {
-                                // TODO: Should not be able to clear initially set squares.
-                                if let Some(index) = self.cursor_square_index {
-                                    puzzle.set(index, None);
-                                }
-                            }
-                        }
-                    }
+                    K::handle_key(self, puzzle, event);
                 }
                 _ => {}
             }
@@ -113,7 +93,7 @@ impl Tui {
         Some(Position { x: (col * 4 + 2) as u16, y: (row * 2 + 1) as u16 })
     }
 
-    fn move_cursor(&mut self, direction: Direction) -> Option<()> {
+    pub fn move_cursor(&mut self, direction: Direction) -> Option<()> {
         let (mut row, mut col) = self.cursor_row_column()?;
         match direction {
             Direction::Up => row = row.wrapping_sub(1).min(8),
@@ -126,16 +106,10 @@ impl Tui {
     }
 }
 
-impl Drop for Tui {
+impl<K: KeyHandler> Drop for Tui<K> {
     fn drop(&mut self) {
         ratatui::restore();
     }
-}
-
-pub enum Action {
-    MoveCursor(Direction),
-    Set(u8),
-    Clear,
 }
 
 pub enum Direction {

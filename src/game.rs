@@ -1,24 +1,45 @@
 use std::sync::mpsc::{self, TryRecvError};
 
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::puzzle::Puzzle;
-use crate::tui::{Action, Direction, Tui};
+use crate::tui::{Direction, KeyHandler, Tui};
+
+struct GameKeys;
+
+impl KeyHandler for GameKeys {
+    fn handle_key(tui: &mut Tui<Self>, puzzle: &mut Puzzle, key: KeyEvent) {
+        match key.code {
+            KeyCode::Char('h') => {
+                tui.move_cursor(Direction::Left);
+            }
+            KeyCode::Char('j') => {
+                tui.move_cursor(Direction::Down);
+            }
+            KeyCode::Char('k') => {
+                tui.move_cursor(Direction::Up);
+            }
+            KeyCode::Char('l') => {
+                tui.move_cursor(Direction::Right);
+            }
+            KeyCode::Backspace => {
+                // Safe unwrap since we call Tui::with_cursor at instantiation.
+                puzzle.set(tui.cursor_square_index.unwrap(), None);
+            }
+            KeyCode::Char(char) => {
+                if let Some(digit) = char.to_digit(10) {
+                    // Safe unwrap since we call Tui::with_cursor at instantiation.
+                    puzzle.set(tui.cursor_square_index.unwrap(), Some(digit as u8));
+                }
+            }
+            _ => {}
+        }
+    }
+}
 
 pub fn play(mut puzzle: Puzzle) {
     let (tx, rx) = mpsc::sync_channel(1);
-    let mut tui = Tui::init(tx).with_cursor().with_key_handler(Box::new(|event| {
-        // TODO: This is unideal, but the best I had to satisfy the borrow checker.
-        match event.code {
-            KeyCode::Char('h') => Some(Action::MoveCursor(Direction::Left)),
-            KeyCode::Char('j') => Some(Action::MoveCursor(Direction::Down)),
-            KeyCode::Char('k') => Some(Action::MoveCursor(Direction::Up)),
-            KeyCode::Char('l') => Some(Action::MoveCursor(Direction::Right)),
-            KeyCode::Backspace => Some(Action::Clear),
-            KeyCode::Char(char) => char.to_digit(10).and_then(|digit| Some(Action::Set(digit as u8))),
-            _ => None,
-        }
-    }));
+    let mut tui = Tui::<GameKeys>::init(tx).with_cursor();
     while let Err(TryRecvError::Empty) = rx.try_recv() {
         // TODO: Don't unwrap.
         tui.render(&mut puzzle).unwrap();
