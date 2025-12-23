@@ -1,5 +1,4 @@
 use std::io;
-use std::marker::PhantomData;
 use std::sync::mpsc::SyncSender;
 use std::time::Duration;
 
@@ -12,8 +11,10 @@ use crate::tui::layout::{Cell, LAYOUT, X_CELL_COUNT, Y_CELL_COUNT};
 
 mod layout;
 
-pub trait KeyHandler: Sized {
-    fn handle_key(_tui: &mut Tui<Self>, _puzzle: &mut Puzzle, _key: KeyEvent) {}
+pub trait KeyHandler: Clone + Default + Sized {
+    fn handle_key(self, _tui: &mut Tui<Self>, _puzzle: &mut Puzzle, _key: KeyEvent) -> Self {
+        self
+    }
 }
 
 impl KeyHandler for () {}
@@ -22,12 +23,12 @@ pub struct Tui<K: KeyHandler = ()> {
     pub cursor_square_index: Option<usize>,
     terminal: DefaultTerminal,
     kill_channel: SyncSender<()>,
-    _phantom: PhantomData<K>,
+    key_handler: K,
 }
 
 impl<K: KeyHandler> Tui<K> {
     pub fn init(kill_channel: SyncSender<()>) -> Self {
-        Self { terminal: ratatui::init(), kill_channel, cursor_square_index: None, _phantom: PhantomData }
+        Self { terminal: ratatui::init(), kill_channel, cursor_square_index: None, key_handler: K::default() }
     }
 
     pub fn with_cursor(mut self) -> Self {
@@ -48,7 +49,7 @@ impl<K: KeyHandler> Tui<K> {
                         return Ok(());
                     }
 
-                    K::handle_key(self, puzzle, event);
+                    self.key_handler = self.key_handler.clone().handle_key(self, puzzle, event);
                 }
                 _ => {}
             }
@@ -100,6 +101,10 @@ impl<K: KeyHandler> Tui<K> {
             Direction::Down => row = (row + 1) % 9,
             Direction::Left => col = col.wrapping_sub(1).min(8),
             Direction::Right => col = (col + 1) % 9,
+            Direction::To { row: r, column: c } => {
+                row = r;
+                col = c;
+            }
         }
         self.cursor_square_index = Some(row * 9 + col);
         Some(())
@@ -113,6 +118,7 @@ impl<K: KeyHandler> Drop for Tui<K> {
 }
 
 pub enum Direction {
+    To { row: usize, column: usize },
     Up,
     Down,
     Left,
