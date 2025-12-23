@@ -23,7 +23,7 @@ struct Cli {
     #[command(subcommand)]
     subcommand: Subcommand,
     /// 81-digit string representing the puzzle, with unsolved squares as 0s
-    puzzle: String,
+    puzzle: Option<String>,
 }
 
 #[derive(clap::Subcommand)]
@@ -54,7 +54,10 @@ fn main() {
 
     env_logger::init();
     let cli = Cli::parse();
-    let puzzle = Puzzle::from_str(&cli.puzzle).unwrap();
+    let puzzle = match cli.puzzle {
+        Some(puzzle) => Puzzle::from_str(&puzzle).unwrap(),
+        None => Puzzle::default(),
+    };
 
     match cli.subcommand {
         Subcommand::Solve { output } => {
