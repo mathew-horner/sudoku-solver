@@ -19,11 +19,22 @@ const PUZZLE_DIGITS: usize = 9_usize.pow(2);
 
 #[derive(Parser)]
 struct Cli {
+    #[command(subcommand)]
+    subcommand: Subcommand,
     /// 81-digit string representing the puzzle, with unsolved squares as 0s
     puzzle: String,
-    /// How to output the solution
-    #[arg(value_enum, short, long, default_value_t)]
-    output: Output,
+}
+
+#[derive(clap::Subcommand)]
+enum Subcommand {
+    /// Algorithmically solve the given puzzle
+    Solve {
+        /// How to output the solution
+        #[arg(value_enum, short, long, default_value_t)]
+        output: Output,
+    },
+    /// Play the given puzzle
+    Play,
 }
 
 #[derive(Clone, Default, ValueEnum)]
@@ -44,27 +55,32 @@ fn main() {
     let cli = Cli::parse();
     let puzzle = Puzzle::from_str(&cli.puzzle).unwrap();
 
-    let solution = match cli.output {
-        Output::Standard => {
-            let mut solution = BaseSolution::new(puzzle);
-            ALGORITHM.solve(&mut solution, None);
-            print!("{}", solution.puzzle.serialize());
-            solution
-        }
-        Output::Pretty => {
-            let mut solution = BaseSolution::new(puzzle);
-            ALGORITHM.solve(&mut solution, None);
-            print!("{}", solution.puzzle);
-            solution
-        }
-        Output::Animation => {
-            let (tx, rx) = mpsc::sync_channel(1);
-            let mut tui = TuiSolution::init(puzzle, tx);
-            ALGORITHM.solve(&mut tui, Some(rx));
-            tui.into_base()
-        }
-    };
+    match cli.subcommand {
+        Subcommand::Solve { output } => {
+            let solution = match output {
+                Output::Standard => {
+                    let mut solution = BaseSolution::new(puzzle);
+                    ALGORITHM.solve(&mut solution, None);
+                    print!("{}", solution.puzzle.serialize());
+                    solution
+                }
+                Output::Pretty => {
+                    let mut solution = BaseSolution::new(puzzle);
+                    ALGORITHM.solve(&mut solution, None);
+                    print!("{}", solution.puzzle);
+                    solution
+                }
+                Output::Animation => {
+                    let (tx, rx) = mpsc::sync_channel(1);
+                    let mut tui = TuiSolution::init(puzzle, tx);
+                    ALGORITHM.solve(&mut tui, Some(rx));
+                    tui.into_base()
+                }
+            };
 
-    #[cfg(debug_assertions)]
-    solution.metrics.write_logs();
+            #[cfg(debug_assertions)]
+            solution.metrics.write_logs();
+        }
+        Subcommand::Play => todo!(),
+    }
 }
