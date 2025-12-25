@@ -1,3 +1,4 @@
+use std::process;
 use std::sync::mpsc::{self, TryRecvError};
 
 use anyhow::Result;
@@ -50,12 +51,29 @@ impl KeyHandler for GameKeys {
                         tui.move_cursor(Movement::To { row, column });
                     }
                 }
+                KeyCode::Char(' ') => {
+                    if let Err(invalid_squares) = puzzle.validate() {
+                        tui.invalid_squares = invalid_squares;
+                    } else {
+                        tui.invalid_squares.clear();
+                    }
+                }
                 KeyCode::Char('g') => {
                     return Self::GoRow;
                 }
                 KeyCode::Char(char) => {
                     if let Some(digit) = char.to_digit(10) {
                         puzzle.set(tui.cursor_square_index.unwrap(), Some(digit as u8));
+
+                        if puzzle.is_filled_out() {
+                            match puzzle.validate() {
+                                Ok(_) => {
+                                    // TODO: Do something better than just exit here.
+                                    process::exit(0);
+                                }
+                                Err(invalid_squares) => tui.invalid_squares = invalid_squares,
+                            }
+                        }
                     }
                 }
                 _ => {}

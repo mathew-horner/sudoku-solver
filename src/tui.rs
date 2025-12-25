@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::mpsc::SyncSender;
 use std::time::Duration;
 
@@ -5,6 +6,7 @@ use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 use ratatui::layout::Position;
+use ratatui::style::Color;
 
 use crate::math::DivRem;
 use crate::puzzle::Puzzle;
@@ -22,6 +24,8 @@ impl KeyHandler for () {}
 
 pub struct Tui<K: KeyHandler = ()> {
     pub cursor_square_index: Option<usize>,
+    pub invalid_squares: HashSet<usize>,
+
     terminal: DefaultTerminal,
     kill_channel: SyncSender<()>,
     key_handler: K,
@@ -29,7 +33,13 @@ pub struct Tui<K: KeyHandler = ()> {
 
 impl<K: KeyHandler> Tui<K> {
     pub fn init(kill_channel: SyncSender<()>) -> Self {
-        Self { terminal: ratatui::init(), kill_channel, cursor_square_index: None, key_handler: K::default() }
+        Self {
+            terminal: ratatui::init(),
+            kill_channel,
+            cursor_square_index: None,
+            key_handler: K::default(),
+            invalid_squares: HashSet::new(),
+        }
     }
 
     pub fn with_cursor(mut self) -> Self {
@@ -65,15 +75,22 @@ impl<K: KeyHandler> Tui<K> {
             for y in 0..Y_CELL_COUNT {
                 for x in 0..X_CELL_COUNT {
                     let cell = frame.buffer_mut().cell_mut((x as u16, y as u16)).unwrap();
-                    let chr = match LAYOUT[y][x] {
-                        Cell::Glyph(glyph) => glyph,
-                        Cell::Space => ' ',
+                    match LAYOUT[y][x] {
+                        Cell::Glyph(glyph) => {
+                            cell.set_char(glyph);
+                        }
+                        Cell::Space => {
+                            cell.set_char(' ');
+                        }
                         Cell::Square(idx) => {
                             // TODO: Use a better way to convert u8 -> char.
-                            puzzle.get(idx).map(|value| (value + 48) as char).unwrap_or(' ')
+                            let char = puzzle.get(idx).map(|value| (value + 48) as char).unwrap_or(' ');
+                            cell.set_char(char);
+                            if self.invalid_squares.contains(&idx) {
+                                cell.set_fg(Color::Red);
+                            }
                         }
                     };
-                    cell.set_char(chr);
                 }
             }
         })?;
