@@ -41,7 +41,7 @@ impl<K: KeyHandler> Tui<K> {
         const IMMEDIATE: Duration = Duration::from_secs(0);
 
         while let Ok(true) = event::poll(IMMEDIATE) {
-            match event::read().unwrap() {
+            match event::read()? {
                 Event::Key(event) => {
                     // BUG: This doesn't work if we have large values for --animation-delay-ms...
                     if event.modifiers.contains(KeyModifiers::CONTROL) && event.code == KeyCode::Char('c') {
