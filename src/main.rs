@@ -12,6 +12,7 @@ use crate::solution::tui::TuiSolution;
 
 mod algorithms;
 mod game;
+mod math;
 #[cfg(debug_assertions)]
 mod metrics;
 mod puzzle;

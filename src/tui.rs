@@ -6,6 +6,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 use ratatui::layout::Position;
 
+use crate::math::DivRem;
 use crate::puzzle::Puzzle;
 use crate::tui::layout::{Cell, LAYOUT, X_CELL_COUNT, Y_CELL_COUNT};
 
@@ -82,21 +83,16 @@ impl<K: KeyHandler> Tui<K> {
         Ok(())
     }
 
-    fn cursor_row_column(&self) -> Option<(usize, usize)> {
-        let cursor_square_index = self.cursor_square_index?;
-        let row = cursor_square_index / 9;
-        let col = cursor_square_index % 9;
-        Some((row, col))
-    }
-
     fn cursor_position(&self) -> Option<Position> {
-        let (row, col) = self.cursor_row_column()?;
+        let index = self.cursor_square_index?;
+        let (row, col) = index.div_rem(9);
         // TODO: Derive these multipliers from the layout file?
         Some(Position { x: (col * 4 + 2) as u16, y: (row * 2 + 1) as u16 })
     }
 
     pub fn move_cursor(&mut self, direction: Movement) -> Option<()> {
-        let (mut row, mut col) = self.cursor_row_column()?;
+        let index = self.cursor_square_index?;
+        let (mut row, mut col) = index.div_rem(9);
         match direction {
             Movement::Up => row = row.wrapping_sub(1).min(8),
             Movement::Down => row = (row + 1) % 9,

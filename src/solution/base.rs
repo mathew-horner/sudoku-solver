@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::ops::Range;
 
 use crate::PUZZLE_DIGITS;
+use crate::math::DivRem;
 #[cfg(debug_assertions)]
 use crate::metrics::Metrics;
 use crate::puzzle::Puzzle;
@@ -46,8 +47,7 @@ impl BaseSolution {
         if idx >= PUZZLE_DIGITS {
             return false;
         }
-        let row = index_to_row(idx);
-        let col = index_to_col(idx);
+        let (row, col) = idx.div_rem(9);
         let (rowr, colr) = box_ranges(row, col);
 
         // Per the rules of Sudoku, every square must have a unique value among its row,
@@ -105,14 +105,6 @@ impl Solution for BaseSolution {
     fn base(&mut self) -> &mut BaseSolution {
         self
     }
-}
-
-fn index_to_row(idx: usize) -> usize {
-    idx / 9
-}
-
-fn index_to_col(idx: usize) -> usize {
-    idx % 9
 }
 
 /// For the box which the given `row` and `col` lie within, return a tuple of
