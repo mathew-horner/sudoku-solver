@@ -45,8 +45,7 @@ impl<K: KeyHandler> Tui<K> {
                 Event::Key(event) => {
                     // BUG: This doesn't work if we have large values for --animation-delay-ms...
                     if event.modifiers.contains(KeyModifiers::CONTROL) && event.code == KeyCode::Char('c') {
-                        // TODO: Do we actually need a channel in every use case, or can we return
-                        // something?
+                        // TODO: Don't unwrap.
                         self.kill_channel.send(()).unwrap();
                         return Ok(());
                     }
