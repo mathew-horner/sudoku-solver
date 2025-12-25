@@ -3,7 +3,7 @@ use std::sync::mpsc::{self, TryRecvError};
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::puzzle::Puzzle;
-use crate::tui::{Direction, KeyHandler, Tui};
+use crate::tui::{KeyHandler, Movement, Tui};
 
 #[derive(Clone, Default)]
 enum GameKeys {
@@ -20,27 +20,43 @@ impl KeyHandler for GameKeys {
         match self {
             Self::Normal => match key.code {
                 KeyCode::Char('h') => {
-                    tui.move_cursor(Direction::Left);
+                    tui.move_cursor(Movement::Left);
                 }
                 KeyCode::Char('j') => {
-                    tui.move_cursor(Direction::Down);
+                    tui.move_cursor(Movement::Down);
                 }
                 KeyCode::Char('k') => {
-                    tui.move_cursor(Direction::Up);
+                    tui.move_cursor(Movement::Up);
                 }
                 KeyCode::Char('l') => {
-                    tui.move_cursor(Direction::Right);
+                    tui.move_cursor(Movement::Right);
                 }
                 KeyCode::Backspace => {
-                    // Safe unwrap since we call Tui::with_cursor at instantiation.
                     puzzle.set(tui.cursor_square_index.unwrap(), None);
+                }
+                KeyCode::Char(',') => {
+                    let index = tui.cursor_square_index.unwrap();
+                    if let Some(prev_index) = puzzle.prev_empty(index) {
+                        // TODO: Don't do this raw calculation here.
+                        let row = prev_index / 9;
+                        let column = prev_index % 9;
+                        tui.move_cursor(Movement::To { row, column });
+                    }
+                }
+                KeyCode::Char('.') => {
+                    let index = tui.cursor_square_index.unwrap();
+                    if let Some(next_index) = puzzle.next_empty(index) {
+                        // TODO: Don't do this raw calculation here.
+                        let row = next_index / 9;
+                        let column = next_index % 9;
+                        tui.move_cursor(Movement::To { row, column });
+                    }
                 }
                 KeyCode::Char('g') => {
                     return Self::GoRow;
                 }
                 KeyCode::Char(char) => {
                     if let Some(digit) = char.to_digit(10) {
-                        // Safe unwrap since we call Tui::with_cursor at instantiation.
                         puzzle.set(tui.cursor_square_index.unwrap(), Some(digit as u8));
                     }
                 }
@@ -66,7 +82,7 @@ impl KeyHandler for GameKeys {
                         // We 1-index the g-<row>-<column> command, so g-0-<column> and g-<row>-0 are
                         // non-sensical.
                         if row > 0 && digit > 0 {
-                            tui.move_cursor(Direction::To { row: row - 1, column: digit as usize - 1 });
+                            tui.move_cursor(Movement::To { row: row - 1, column: digit as usize - 1 });
                         }
                         return Self::Normal;
                     }

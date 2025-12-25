@@ -95,14 +95,14 @@ impl<K: KeyHandler> Tui<K> {
         Some(Position { x: (col * 4 + 2) as u16, y: (row * 2 + 1) as u16 })
     }
 
-    pub fn move_cursor(&mut self, direction: Direction) -> Option<()> {
+    pub fn move_cursor(&mut self, direction: Movement) -> Option<()> {
         let (mut row, mut col) = self.cursor_row_column()?;
         match direction {
-            Direction::Up => row = row.wrapping_sub(1).min(8),
-            Direction::Down => row = (row + 1) % 9,
-            Direction::Left => col = col.wrapping_sub(1).min(8),
-            Direction::Right => col = (col + 1) % 9,
-            Direction::To { row: r, column: c } => {
+            Movement::Up => row = row.wrapping_sub(1).min(8),
+            Movement::Down => row = (row + 1) % 9,
+            Movement::Left => col = col.wrapping_sub(1).min(8),
+            Movement::Right => col = (col + 1) % 9,
+            Movement::To { row: r, column: c } => {
                 row = r;
                 col = c;
             }
@@ -118,7 +118,7 @@ impl<K: KeyHandler> Drop for Tui<K> {
     }
 }
 
-pub enum Direction {
+pub enum Movement {
     To { row: usize, column: usize },
     Up,
     Down,

@@ -40,6 +40,14 @@ impl Puzzle {
         }
         buffer
     }
+
+    pub fn prev_empty(&self, index: usize) -> Option<usize> {
+        (0..index).into_iter().rev().find(|&i| self.data[i].is_none())
+    }
+
+    pub fn next_empty(&self, index: usize) -> Option<usize> {
+        (index + 1..self.data.len()).find(|&i| self.data[i].is_none())
+    }
 }
 
 impl Default for Puzzle {
