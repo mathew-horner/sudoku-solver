@@ -1,3 +1,4 @@
+use std::process;
 use std::sync::mpsc::{self, TryRecvError};
 
 use crossterm::event::{KeyCode, KeyEvent};
@@ -35,6 +36,13 @@ impl KeyHandler for GameKeys {
                     // Safe unwrap since we call Tui::with_cursor at instantiation.
                     puzzle.set(tui.cursor_square_index.unwrap(), None);
                 }
+                KeyCode::Enter => {
+                    if let Err(invalid_squares) = puzzle.validate() {
+                        tui.invalid_squares = invalid_squares;
+                    } else {
+                        tui.invalid_squares.clear();
+                    }
+                }
                 KeyCode::Char('g') => {
                     return Self::GoRow;
                 }
@@ -42,6 +50,16 @@ impl KeyHandler for GameKeys {
                     if let Some(digit) = char.to_digit(10) {
                         // Safe unwrap since we call Tui::with_cursor at instantiation.
                         puzzle.set(tui.cursor_square_index.unwrap(), Some(digit as u8));
+
+                        if puzzle.is_filled_out() {
+                            match puzzle.validate() {
+                                Ok(_) => {
+                                    // TODO: Do something better than just exit here.
+                                    process::exit(0);
+                                }
+                                Err(invalid_squares) => tui.invalid_squares = invalid_squares,
+                            }
+                        }
                     }
                 }
                 _ => {}

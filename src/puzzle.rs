@@ -1,3 +1,4 @@
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::str::FromStr;
 
@@ -39,6 +40,59 @@ impl Puzzle {
             buffer.push(char);
         }
         buffer
+    }
+
+    /// Returns true if all of the squares in the puzzle are filled.
+    pub fn is_filled_out(&self) -> bool {
+        self.data.iter().all(Option::is_some)
+    }
+
+    /// Returns a list of invalid square indices if the puzzle state is invalid.
+    pub fn validate(&self) -> Result<(), HashSet<usize>> {
+        let mut invalid_squares = HashSet::new();
+
+        for row in 0..9 {
+            let mut seen = HashMap::new();
+            for col in 0..9 {
+                let index = row * 9 + col;
+                if let Some(value) = self.data[index] {
+                    seen.entry(value).or_insert_with(|| Vec::new()).push(index);
+                }
+            }
+            invalid_squares.extend(seen.values().filter(|idxs| idxs.len() > 1).flatten());
+        }
+
+        for col in 0..9 {
+            let mut seen = HashMap::new();
+            for row in 0..9 {
+                let index = row * 9 + col;
+                if let Some(value) = self.data[index] {
+                    seen.entry(value).or_insert_with(|| Vec::new()).push(index);
+                }
+            }
+            invalid_squares.extend(seen.values().filter(|idxs| idxs.len() > 1).flatten());
+        }
+
+        for rowr in [0..3, 3..6, 6..9] {
+            for colr in [0..3, 3..6, 6..9] {
+                let mut seen = HashMap::new();
+                for row in rowr.clone() {
+                    for col in colr.clone() {
+                        let index = row * 9 + col;
+                        if let Some(value) = self.data[index] {
+                            seen.entry(value).or_insert_with(|| Vec::new()).push(index);
+                        }
+                    }
+                }
+                invalid_squares.extend(seen.values().filter(|idxs| idxs.len() > 1).flatten());
+            }
+        }
+
+        if !invalid_squares.is_empty() {
+            return Err(invalid_squares);
+        }
+
+        Ok(())
     }
 }
 
