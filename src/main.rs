@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::mpsc;
@@ -68,8 +69,7 @@ fn main() {
         (None, Some(file)) => Some(fs::read_to_string(file).unwrap()),
         (None, None) => None,
         _ => {
-            eprintln!("only one of [PUZZLE] and -f <FILE> may be provided");
-            process::exit(1);
+            exit("only one of [PUZZLE] and -f <FILE> may be provided");
         }
     };
 
@@ -81,8 +81,7 @@ fn main() {
     match cli.subcommand {
         Subcommand::Solve { output, animation_delay_ms } => {
             if animation_delay_ms.is_some() && !matches!(output, Output::Animation) {
-                eprintln!("--animation-delay-ms can only be used in combination with --output=animation");
-                process::exit(1);
+                exit("--animation-delay-ms can only be used in combination with --output=animation");
             }
 
             let (result, solution) = match output {
@@ -100,8 +99,7 @@ fn main() {
             };
 
             if let Err(error) = result {
-                eprintln!("{error}");
-                process::exit(1);
+                exit(format!("{error}"));
             }
 
             match output {
@@ -119,9 +117,14 @@ fn main() {
         }
         Subcommand::Play => {
             if let Err(error) = game::play(puzzle) {
-                eprintln!("{error}");
-                process::exit(1);
+                exit(format!("{error}"));
             }
         }
     }
+}
+
+fn exit(message: impl Into<Cow<'static, str>>) -> ! {
+    let message = message.into();
+    eprintln!("{message}");
+    process::exit(1);
 }
