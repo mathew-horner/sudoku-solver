@@ -65,7 +65,6 @@ impl<K: KeyHandler> Tui<K> {
 
             for y in 0..Y_CELL_COUNT {
                 for x in 0..X_CELL_COUNT {
-                    // TODO: Don't unwrap.
                     let cell = frame.buffer_mut().cell_mut((x as u16, y as u16)).unwrap();
                     let chr = match LAYOUT[y][x] {
                         Cell::Glyph(glyph) => glyph,
