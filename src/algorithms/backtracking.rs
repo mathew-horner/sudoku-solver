@@ -1,12 +1,14 @@
 use std::sync::mpsc::Receiver;
 
+use anyhow::Result;
+
 use crate::algorithms::Algorithm;
 use crate::solution::Solution;
 
 pub struct Backtracking;
 
 impl Algorithm for Backtracking {
-    fn solve<T: Solution>(&self, solution: &mut T, kill_channel: Option<Receiver<()>>) {
+    fn solve<T: Solution>(&self, solution: &mut T, kill_channel: Option<Receiver<()>>) -> Result<()> {
         let mut pointer = 0;
 
         // We only need to iterate over the initially empty squares to find a solution.
@@ -17,7 +19,7 @@ impl Algorithm for Backtracking {
             if let Some(channel) = kill_channel.as_ref()
                 && let Ok(()) = channel.try_recv()
             {
-                return;
+                return Ok(());
             }
 
             let idx = initially_empty[pointer];
@@ -29,7 +31,7 @@ impl Algorithm for Backtracking {
             // we will only consider values higher than it since we've already tried the
             // lower values.
             for cand in (base + 1)..=9 {
-                solution.set(idx, Some(cand));
+                solution.set(idx, Some(cand))?;
                 if solution.base().is_valid_digit(idx) {
                     found_valid = true;
                     break;
@@ -39,7 +41,7 @@ impl Algorithm for Backtracking {
             if found_valid {
                 pointer += 1;
             } else {
-                solution.set(idx, None);
+                solution.set(idx, None)?;
                 if pointer == 0 {
                     // If we ever get here, that means we've exhausted all the candidates in the
                     // first cell, and thus we cannot find a solution.
@@ -48,6 +50,8 @@ impl Algorithm for Backtracking {
                 pointer -= 1;
             }
         }
+
+        Ok(())
     }
 }
 
@@ -65,7 +69,7 @@ mod test {
             Puzzle::from_str("050703060007000800000816000000030000005000100730040086906000204840572093000409000")
                 .unwrap();
         let mut solution = BaseSolution::new(puzzle);
-        Backtracking.solve(&mut solution, None);
+        Backtracking.solve(&mut solution, None).unwrap();
 
         let expected =
             Puzzle::from_str("158723469367954821294816375619238547485697132732145986976381254841572693523469718")

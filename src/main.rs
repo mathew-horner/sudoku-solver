@@ -85,32 +85,43 @@ fn main() {
                 process::exit(1);
             }
 
-            let solution = match output {
-                Output::Standard => {
+            let (result, solution) = match output {
+                Output::Standard | Output::Pretty => {
                     let mut solution = BaseSolution::new(puzzle);
-                    ALGORITHM.solve(&mut solution, None);
-                    print!("{}", solution.puzzle.serialize());
-                    solution
-                }
-                Output::Pretty => {
-                    let mut solution = BaseSolution::new(puzzle);
-                    ALGORITHM.solve(&mut solution, None);
-                    print!("{}", solution.puzzle);
-                    solution
+                    let result = ALGORITHM.solve(&mut solution, None);
+                    (result, solution)
                 }
                 Output::Animation => {
                     let (tx, rx) = mpsc::sync_channel(1);
                     let mut tui = TuiSolution::init(puzzle, tx, animation_delay_ms);
-                    ALGORITHM.solve(&mut tui, Some(rx));
-                    tui.into_base()
+                    let result = ALGORITHM.solve(&mut tui, Some(rx));
+                    (result, tui.into_base())
                 }
             };
+
+            if let Err(error) = result {
+                eprintln!("{error}");
+                process::exit(1);
+            }
+
+            match output {
+                Output::Standard => {
+                    println!("{}", solution.puzzle);
+                }
+                Output::Pretty => {
+                    println!("{}", solution.puzzle.serialize());
+                }
+                Output::Animation => {}
+            }
 
             #[cfg(debug_assertions)]
             solution.metrics.write_logs();
         }
         Subcommand::Play => {
-            game::play(puzzle);
+            if let Err(error) = game::play(puzzle) {
+                eprintln!("{error}");
+                process::exit(1);
+            }
         }
     }
 }

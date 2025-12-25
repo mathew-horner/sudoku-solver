@@ -1,7 +1,7 @@
-use std::io;
 use std::sync::mpsc::SyncSender;
 use std::time::Duration;
 
+use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 use ratatui::layout::Position;
@@ -37,7 +37,7 @@ impl<K: KeyHandler> Tui<K> {
         self
     }
 
-    pub fn render(&mut self, puzzle: &mut Puzzle) -> io::Result<()> {
+    pub fn render(&mut self, puzzle: &mut Puzzle) -> Result<()> {
         const IMMEDIATE: Duration = Duration::from_secs(0);
 
         while let Ok(true) = event::poll(IMMEDIATE) {
@@ -45,8 +45,7 @@ impl<K: KeyHandler> Tui<K> {
                 Event::Key(event) => {
                     // BUG: This doesn't work if we have large values for --animation-delay-ms...
                     if event.modifiers.contains(KeyModifiers::CONTROL) && event.code == KeyCode::Char('c') {
-                        // TODO: Don't unwrap.
-                        self.kill_channel.send(()).unwrap();
+                        self.kill_channel.send(())?;
                         return Ok(());
                     }
 

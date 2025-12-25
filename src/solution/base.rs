@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 use std::ops::Range;
 
+use anyhow::Result;
+
 use crate::PUZZLE_DIGITS;
 use crate::math::DivRem;
 #[cfg(debug_assertions)]
@@ -98,8 +100,9 @@ impl BaseSolution {
 }
 
 impl Solution for BaseSolution {
-    fn set(&mut self, index: usize, value: Option<u8>) {
-        self.set(index, value)
+    fn set(&mut self, index: usize, value: Option<u8>) -> Result<()> {
+        self.set(index, value);
+        Ok(())
     }
 
     fn base(&mut self) -> &mut BaseSolution {

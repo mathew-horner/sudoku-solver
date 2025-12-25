@@ -2,6 +2,8 @@ use std::sync::mpsc::SyncSender;
 use std::thread;
 use std::time::Duration;
 
+use anyhow::Result;
+
 use crate::puzzle::Puzzle;
 use crate::solution::Solution;
 use crate::solution::base::BaseSolution;
@@ -31,11 +33,11 @@ impl TuiSolution {
 }
 
 impl Solution for TuiSolution {
-    fn set(&mut self, index: usize, value: Option<u8>) {
+    fn set(&mut self, index: usize, value: Option<u8>) -> Result<()> {
         self.base.set(index, value);
-        // TODO: Don't unwrap here.
-        self.tui.render(&mut self.base.puzzle).unwrap();
+        self.tui.render(&mut self.base.puzzle)?;
         thread::sleep(self.delay);
+        Ok(())
     }
 
     fn base(&mut self) -> &mut BaseSolution {

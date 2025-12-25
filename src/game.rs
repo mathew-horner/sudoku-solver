@@ -1,5 +1,6 @@
 use std::sync::mpsc::{self, TryRecvError};
 
+use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::math::DivRem;
@@ -91,12 +92,12 @@ impl KeyHandler for GameKeys {
     }
 }
 
-pub fn play(mut puzzle: Puzzle) {
+pub fn play(mut puzzle: Puzzle) -> Result<()> {
     puzzle.track_initial();
     let (tx, rx) = mpsc::sync_channel(1);
     let mut tui = Tui::<GameKeys>::init(tx).with_cursor();
     while let Err(TryRecvError::Empty) = rx.try_recv() {
-        // TODO: Don't unwrap.
-        tui.render(&mut puzzle).unwrap();
+        tui.render(&mut puzzle)?;
     }
+    Ok(())
 }
