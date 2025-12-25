@@ -86,8 +86,17 @@ impl<K: KeyHandler> Tui<K> {
                             // TODO: Use a better way to convert u8 -> char.
                             let char = puzzle.get(idx).map(|value| (value + 48) as char).unwrap_or(' ');
                             cell.set_char(char);
+                            if let Some(initially_filled) = &puzzle.initially_filled {
+                                cell.set_fg(if initially_filled[idx] { Color::Gray } else { Color::LightBlue });
+                            }
                             if self.invalid_squares.contains(&idx) {
-                                cell.set_fg(Color::Red);
+                                if !puzzle
+                                    .initially_filled
+                                    .map(|initially_filled| initially_filled[idx])
+                                    .unwrap_or_default()
+                                {
+                                    cell.set_fg(Color::Red);
+                                }
                             }
                         }
                     };

@@ -11,7 +11,7 @@ pub struct Puzzle {
     pub data: [Option<u8>; PUZZLE_DIGITS],
     /// Optional tracking of the cells which were initially filled, restricting
     /// edits to them.
-    initially_filled: Option<[bool; PUZZLE_DIGITS]>,
+    pub initially_filled: Option<[bool; PUZZLE_DIGITS]>,
 }
 
 impl Puzzle {
