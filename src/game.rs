@@ -36,7 +36,7 @@ impl KeyHandler for GameKeys {
                     // Safe unwrap since we call Tui::with_cursor at instantiation.
                     puzzle.set(tui.cursor_square_index.unwrap(), None);
                 }
-                KeyCode::Enter => {
+                KeyCode::Char(' ') => {
                     if let Err(invalid_squares) = puzzle.validate() {
                         tui.invalid_squares = invalid_squares;
                     } else {
