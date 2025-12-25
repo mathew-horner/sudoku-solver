@@ -42,6 +42,7 @@ impl<K: KeyHandler> Tui<K> {
         while let Ok(true) = event::poll(IMMEDIATE) {
             match event::read().unwrap() {
                 Event::Key(event) => {
+                    // BUG: This doesn't work if we have large values for --animation-delay-ms...
                     if event.modifiers.contains(KeyModifiers::CONTROL) && event.code == KeyCode::Char('c') {
                         // TODO: Do we actually need a channel in every use case, or can we return
                         // something?

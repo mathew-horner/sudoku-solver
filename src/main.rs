@@ -38,6 +38,9 @@ enum Subcommand {
         /// How to output the solution
         #[arg(value_enum, short, long, default_value_t)]
         output: Output,
+        /// The delay in milliseconds between edits for `--output=animation`
+        #[arg(long)]
+        animation_delay_ms: Option<u64>,
     },
     /// Play the given puzzle
     Play,
@@ -75,7 +78,12 @@ fn main() {
     };
 
     match cli.subcommand {
-        Subcommand::Solve { output } => {
+        Subcommand::Solve { output, animation_delay_ms } => {
+            if animation_delay_ms.is_some() && !matches!(output, Output::Animation) {
+                eprintln!("--animation-delay-ms can only be used in combination with --output=animation");
+                process::exit(1);
+            }
+
             let solution = match output {
                 Output::Standard => {
                     let mut solution = BaseSolution::new(puzzle);
@@ -91,7 +99,7 @@ fn main() {
                 }
                 Output::Animation => {
                     let (tx, rx) = mpsc::sync_channel(1);
-                    let mut tui = TuiSolution::init(puzzle, tx);
+                    let mut tui = TuiSolution::init(puzzle, tx, animation_delay_ms);
                     ALGORITHM.solve(&mut tui, Some(rx));
                     tui.into_base()
                 }

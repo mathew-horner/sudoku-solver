@@ -7,6 +7,8 @@ use crate::solution::Solution;
 use crate::solution::base::BaseSolution;
 use crate::tui::Tui;
 
+const DEFAULT_DELAY_MS: u64 = 50;
+
 /// Renders the solution to a TUI as it is being found.
 ///
 /// This is great for visualizing how an [`Algorithm`] works, and how different
@@ -14,11 +16,13 @@ use crate::tui::Tui;
 pub struct TuiSolution {
     tui: Tui,
     base: BaseSolution,
+    delay: Duration,
 }
 
 impl TuiSolution {
-    pub fn init(puzzle: Puzzle, kill_channel: SyncSender<()>) -> Self {
-        Self { tui: Tui::init(kill_channel), base: BaseSolution::new(puzzle) }
+    pub fn init(puzzle: Puzzle, kill_channel: SyncSender<()>, delay_ms: Option<u64>) -> Self {
+        let delay = Duration::from_millis(delay_ms.unwrap_or(DEFAULT_DELAY_MS));
+        Self { tui: Tui::init(kill_channel), base: BaseSolution::new(puzzle), delay }
     }
 
     pub fn into_base(self) -> BaseSolution {
@@ -31,8 +35,7 @@ impl Solution for TuiSolution {
         self.base.set(index, value);
         // TODO: Don't unwrap here.
         self.tui.render(&mut self.base.puzzle).unwrap();
-        // TODO: Make this configurable.
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(self.delay);
     }
 
     fn base(&mut self) -> &mut BaseSolution {
