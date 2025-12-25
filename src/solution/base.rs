@@ -4,11 +4,11 @@ use std::ops::Range;
 use anyhow::Result;
 
 use crate::PUZZLE_DIGITS;
-use crate::math::DivRem;
 #[cfg(debug_assertions)]
 use crate::metrics::Metrics;
 use crate::puzzle::Puzzle;
 use crate::solution::Solution;
+use crate::util::DivRem;
 
 /// The base solution that is used by other [`Solution`] implementors.
 ///

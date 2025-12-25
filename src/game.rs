@@ -4,9 +4,9 @@ use std::sync::mpsc::{self, TryRecvError};
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::math::DivRem;
 use crate::puzzle::Puzzle;
 use crate::tui::{KeyHandler, Movement, Tui};
+use crate::util::DivRem;
 
 #[derive(Clone, Default)]
 enum GameKeys {

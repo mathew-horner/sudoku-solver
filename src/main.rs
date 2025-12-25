@@ -13,12 +13,12 @@ use crate::solution::tui::TuiSolution;
 
 mod algorithms;
 mod game;
-mod math;
 #[cfg(debug_assertions)]
 mod metrics;
 mod puzzle;
 mod solution;
 mod tui;
+mod util;
 
 const PUZZLE_DIGITS: usize = 9_usize.pow(2);
 

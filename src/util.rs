@@ -16,3 +16,14 @@ where
         (div, rem)
     }
 }
+
+pub trait DigitChar {
+    /// If this number is a single digit, return its ASCII char.
+    fn digit_char(self) -> Option<char>;
+}
+
+impl DigitChar for u8 {
+    fn digit_char(self) -> Option<char> {
+        (self < 10).then(|| (self + 48) as char)
+    }
+}

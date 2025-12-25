@@ -8,9 +8,9 @@ use ratatui::DefaultTerminal;
 use ratatui::layout::Position;
 use ratatui::style::Color;
 
-use crate::math::DivRem;
 use crate::puzzle::Puzzle;
 use crate::tui::layout::{Cell, LAYOUT, X_CELL_COUNT, Y_CELL_COUNT};
+use crate::util::{DigitChar, DivRem};
 
 mod layout;
 
@@ -83,8 +83,7 @@ impl<K: KeyHandler> Tui<K> {
                             cell.set_char(' ');
                         }
                         Cell::Square(idx) => {
-                            // TODO: Use a better way to convert u8 -> char.
-                            let char = puzzle.get(idx).map(|value| (value + 48) as char).unwrap_or(' ');
+                            let char = puzzle.get(idx).and_then(DigitChar::digit_char).unwrap_or(' ');
                             cell.set_char(char);
                             if let Some(initially_filled) = &puzzle.initially_filled {
                                 cell.set_fg(if initially_filled[idx] { Color::Gray } else { Color::LightBlue });
