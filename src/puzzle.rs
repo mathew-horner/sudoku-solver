@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::ops::Range;
 use std::str::FromStr;
 
 use anyhow::{Error, Result, anyhow};
@@ -58,42 +59,47 @@ impl Puzzle {
 
     /// Returns a list of invalid square indices if the puzzle state is invalid.
     pub fn validate(&self) -> Result<(), HashSet<usize>> {
+        fn pass(
+            puzzle: &Puzzle,
+            invalid_squares: &mut HashSet<usize>,
+            irange: Range<usize>,
+            jrange: Range<usize>,
+            calculate_index: impl Fn(usize, usize) -> usize,
+            seen: &mut HashMap<u8, Vec<usize>>,
+            clear_seen_outer_loop: bool,
+        ) {
+            for i in irange {
+                for j in jrange.clone() {
+                    let index = calculate_index(i, j);
+                    if let Some(value) = puzzle.data[index] {
+                        seen.entry(value).or_insert_with(|| Vec::new()).push(index);
+                    }
+                }
+
+                invalid_squares.extend(seen.values().filter(|idxs| idxs.len() > 1).flatten());
+                if clear_seen_outer_loop {
+                    seen.clear();
+                }
+            }
+
+            // If we don't clear seen after each outer loop iter, we ought to do it now.
+            if !clear_seen_outer_loop {
+                seen.clear();
+            }
+        }
+
         let mut invalid_squares = HashSet::new();
+        let mut seen = HashMap::new();
 
-        for row in 0..9 {
-            let mut seen = HashMap::new();
-            for col in 0..9 {
-                let index = row * 9 + col;
-                if let Some(value) = self.data[index] {
-                    seen.entry(value).or_insert_with(|| Vec::new()).push(index);
-                }
-            }
-            invalid_squares.extend(seen.values().filter(|idxs| idxs.len() > 1).flatten());
-        }
-
-        for col in 0..9 {
-            let mut seen = HashMap::new();
-            for row in 0..9 {
-                let index = row * 9 + col;
-                if let Some(value) = self.data[index] {
-                    seen.entry(value).or_insert_with(|| Vec::new()).push(index);
-                }
-            }
-            invalid_squares.extend(seen.values().filter(|idxs| idxs.len() > 1).flatten());
-        }
+        // Validate by row.
+        pass(self, &mut invalid_squares, 0..9, 0..9, |i, j| i * 9 + j, &mut seen, true);
+        // Validate by column.
+        pass(self, &mut invalid_squares, 0..9, 0..9, |i, j| j * 9 + i, &mut seen, true);
 
         for rowr in [0..3, 3..6, 6..9] {
             for colr in [0..3, 3..6, 6..9] {
-                let mut seen = HashMap::new();
-                for row in rowr.clone() {
-                    for col in colr.clone() {
-                        let index = row * 9 + col;
-                        if let Some(value) = self.data[index] {
-                            seen.entry(value).or_insert_with(|| Vec::new()).push(index);
-                        }
-                    }
-                }
-                invalid_squares.extend(seen.values().filter(|idxs| idxs.len() > 1).flatten());
+                // Validate by box.
+                pass(self, &mut invalid_squares, rowr.clone(), colr, |i, j| i * 9 + j, &mut seen, false);
             }
         }
 
