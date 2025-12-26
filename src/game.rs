@@ -11,17 +11,17 @@ use crate::util::DivRem;
 #[derive(Clone, Default)]
 enum GameKeys {
     #[default]
-    Normal,
+    Default,
+    /// Waiting on the user to enter the desired row to jump to.
     GoRow,
-    GoColumn {
-        row: usize,
-    },
+    /// Waiting on the user to enter the desired column to jump to.
+    GoColumn { row: usize },
 }
 
 impl KeyHandler for GameKeys {
     fn handle_key(self, tui: &mut Tui<Self>, puzzle: &mut Puzzle, key: KeyEvent) -> Self {
         match self {
-            Self::Normal => match key.code {
+            Self::Default => match key.code {
                 KeyCode::Char('h') => {
                     tui.move_cursor(Movement::Left);
                 }
@@ -81,7 +81,7 @@ impl KeyHandler for GameKeys {
             },
             Self::GoRow => match key.code {
                 KeyCode::Esc => {
-                    return Self::Normal;
+                    return Self::Default;
                 }
                 KeyCode::Char(char) => {
                     if let Some(digit) = char.to_digit(10) {
@@ -93,7 +93,7 @@ impl KeyHandler for GameKeys {
             },
             Self::GoColumn { row } => match key.code {
                 KeyCode::Esc => {
-                    return Self::Normal;
+                    return Self::Default;
                 }
                 KeyCode::Char(char) => {
                     if let Some(digit) = char.to_digit(10) {
@@ -103,7 +103,7 @@ impl KeyHandler for GameKeys {
                             // This usize cast and subtracting 1 is safe since digit will only ever be 1-9.
                             tui.move_cursor(Movement::To { row: row - 1, column: digit as usize - 1 });
                         }
-                        return Self::Normal;
+                        return Self::Default;
                     }
                 }
                 _ => {}
