@@ -71,11 +71,15 @@ impl<K: KeyHandler> Tui<K> {
         let invalid_squares = &self.invalid_squares;
 
         self.terminal.draw(|frame| {
+            // These casts to u16s are safe since the dimensions of the grid layout array
+            // will never overflow u16.
             let horizontal = Constraint::Length(LAYOUT[0].len() as u16);
             let vertical = Constraint::Length(LAYOUT.len() as u16);
+
             let grid_rect = frame.area().centered(horizontal, vertical);
 
             if let Some(cursor_position) = cursor_position {
+                // u16 -> i32 is always safe.
                 frame.set_cursor_position(cursor_position + Offset { x: grid_rect.x as i32, y: grid_rect.y as i32 });
             }
 
@@ -153,6 +157,9 @@ impl Widget for GridWidget<'_> {
     {
         for y in 0..Y_CELL_COUNT {
             for x in 0..X_CELL_COUNT {
+                // These u16 casts are safe since the dimensions of the grid are defined by a
+                // constant and will never overflow u16.
+                // TODO: Is this unwrap safe to do?
                 let cell = buf.cell_mut((area.x + x as u16, area.y + y as u16)).unwrap();
                 match LAYOUT[y][x] {
                     Cell::Glyph(glyph) => {

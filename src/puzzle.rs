@@ -34,6 +34,7 @@ impl Puzzle {
         let mut buffer = String::with_capacity(PUZZLE_DIGITS);
         for idx in 0..PUZZLE_DIGITS {
             let char = match self.data[idx] {
+                // We only ever store digits in data, so both the u32 cast and unwrap should be safe.
                 Some(digit) => char::from_digit(digit as u32, 10).unwrap(),
                 None => '0',
             };
@@ -126,6 +127,7 @@ impl FromStr for Puzzle {
                 Some(0) => {}
                 None if char == '.' => {}
                 Some(digit) => {
+                    // This cast to u8 is safe since digit will only ever be 0-9.
                     puzzle.data[idx] = Some(digit as u8);
                 }
                 None => return Err(anyhow!("character {char} at index {idx} is not a digit or period")),

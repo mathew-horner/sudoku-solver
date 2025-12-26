@@ -63,6 +63,7 @@ impl KeyHandler for GameKeys {
                 }
                 KeyCode::Char(char) => {
                     if let Some(digit) = char.to_digit(10) {
+                        // This cast to u8 is safe since digit will only ever be 0-9.
                         puzzle.set(tui.cursor_square_index.unwrap(), Some(digit as u8));
 
                         if puzzle.is_filled_out() {
@@ -84,6 +85,7 @@ impl KeyHandler for GameKeys {
                 }
                 KeyCode::Char(char) => {
                     if let Some(digit) = char.to_digit(10) {
+                        // This cast to usize is safe since digit will only ever be 0-9.
                         return Self::GoColumn { row: digit as usize };
                     }
                 }
@@ -98,6 +100,7 @@ impl KeyHandler for GameKeys {
                         // We 1-index the g-<row>-<column> command, so g-0-<column> and g-<row>-0 are
                         // non-sensical.
                         if row > 0 && digit > 0 {
+                            // This usize cast and subtracting 1 is safe since digit will only ever be 1-9.
                             tui.move_cursor(Movement::To { row: row - 1, column: digit as usize - 1 });
                         }
                         return Self::Normal;
