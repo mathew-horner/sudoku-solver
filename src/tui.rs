@@ -5,8 +5,10 @@ use std::time::Duration;
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
-use ratatui::layout::Position;
+use ratatui::buffer::Buffer;
+use ratatui::layout::{Constraint, Offset, Position, Rect};
 use ratatui::style::Color;
+use ratatui::widgets::Widget;
 
 use crate::puzzle::Puzzle;
 use crate::tui::layout::{Cell, LAYOUT, X_CELL_COUNT, Y_CELL_COUNT};
@@ -66,42 +68,20 @@ impl<K: KeyHandler> Tui<K> {
         }
 
         let cursor_position = self.cursor_position();
+        let invalid_squares = &self.invalid_squares;
 
         self.terminal.draw(|frame| {
+            let horizontal = Constraint::Length(LAYOUT[0].len() as u16);
+            let vertical = Constraint::Length(LAYOUT.len() as u16);
+            let grid_rect = frame.area().centered(horizontal, vertical);
+
             if let Some(cursor_position) = cursor_position {
-                frame.set_cursor_position(cursor_position);
+                frame.set_cursor_position(cursor_position + Offset { x: grid_rect.x as i32, y: grid_rect.y as i32 });
             }
 
-            for y in 0..Y_CELL_COUNT {
-                for x in 0..X_CELL_COUNT {
-                    let cell = frame.buffer_mut().cell_mut((x as u16, y as u16)).unwrap();
-                    match LAYOUT[y][x] {
-                        Cell::Glyph(glyph) => {
-                            cell.set_char(glyph);
-                        }
-                        Cell::Space => {
-                            cell.set_char(' ');
-                        }
-                        Cell::Square(idx) => {
-                            let char = puzzle.get(idx).and_then(DigitChar::digit_char).unwrap_or(' ');
-                            cell.set_char(char);
-                            if let Some(initially_filled) = &puzzle.initially_filled {
-                                cell.set_fg(if initially_filled[idx] { Color::Gray } else { Color::LightBlue });
-                            }
-                            if self.invalid_squares.contains(&idx) {
-                                if !puzzle
-                                    .initially_filled
-                                    .map(|initially_filled| initially_filled[idx])
-                                    .unwrap_or_default()
-                                {
-                                    cell.set_fg(Color::Red);
-                                }
-                            }
-                        }
-                    };
-                }
-            }
+            frame.render_widget(GridWidget { puzzle, invalid_squares }, grid_rect);
         })?;
+
         Ok(())
     }
 
@@ -142,4 +122,50 @@ pub enum Movement {
     Down,
     Left,
     Right,
+}
+
+struct GridWidget<'a> {
+    puzzle: &'a Puzzle,
+    invalid_squares: &'a HashSet<usize>,
+}
+
+impl GridWidget<'_> {
+    fn render_square(&self, index: usize, cell: &mut ratatui::buffer::Cell) {
+        let char = self.puzzle.get(index).and_then(DigitChar::digit_char).unwrap_or(' ');
+        cell.set_char(char);
+
+        if let Some(initially_filled) = &self.puzzle.initially_filled {
+            cell.set_fg(if initially_filled[index] { Color::Gray } else { Color::LightBlue });
+        }
+
+        if self.invalid_squares.contains(&index) {
+            if !self.puzzle.initially_filled.map(|initially_filled| initially_filled[index]).unwrap_or_default() {
+                cell.set_fg(Color::Red);
+            }
+        }
+    }
+}
+
+impl Widget for GridWidget<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer)
+    where
+        Self: Sized,
+    {
+        for y in 0..Y_CELL_COUNT {
+            for x in 0..X_CELL_COUNT {
+                let cell = buf.cell_mut((area.x + x as u16, area.y + y as u16)).unwrap();
+                match LAYOUT[y][x] {
+                    Cell::Glyph(glyph) => {
+                        cell.set_char(glyph);
+                    }
+                    Cell::Space => {
+                        cell.set_char(' ');
+                    }
+                    Cell::Square(index) => {
+                        self.render_square(index, cell);
+                    }
+                };
+            }
+        }
+    }
 }
